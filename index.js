@@ -1,11 +1,12 @@
 const express = require("express")
 const excelJs = require("exceljs")
 const bodyParser = require('body-parser')
+require('dotenv').config()
 var fs = require("fs")
 
 const app = express()
 
-const PORT = 4000
+const PORT = process.env.PORT || 4000
 app.use(bodyParser.json({limit:"50mb"}))
 app.use(bodyParser.urlencoded({ extended: true }))
 app.get("/JsonExportExcel", async (req, res) => {
