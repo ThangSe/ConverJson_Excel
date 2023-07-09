@@ -11,7 +11,7 @@ app.use(bodyParser.json({limit:"50mb"}))
 app.use(bodyParser.urlencoded({ extended: true }))
 app.post("/JsonExportExcel/Convert-All", async (req, res) => {
     try {
-        let object
+        let objects
         let workbook = new excelJs.Workbook()
         let row = 1
         try{
@@ -22,36 +22,39 @@ app.post("/JsonExportExcel/Convert-All", async (req, res) => {
         }
         
         const sheet = workbook.addWorksheet(req.body.SheetName)
-        sheet.columns = [
-            {header: "Id", key: "id", width: 5},
-            {header: "FileName", key: "filename", width: 25},
-            {header: "Image", key: 'image', width: 15},
-            {header: "Object", key: "object", width: 25},
-            {header: "Category", key: "category", width: 25},
-            {header: "Type", key: "type", width: 25},
-        ]  
+        let columns = new Array()
+        req.body.ColumnsToConVert.forEach(column => {
+            let width = 25
+            if(column === "Id") width = 5
+            columns.push({header: `${column}`, key: `${column.toLowerCase()}`, width: width})
+        })
+
+        sheet.columns = columns 
+
         try{
-            object = JSON.parse(fs.readFileSync(req.body.ConfigJsonPath, 'utf8'))
+            objects = JSON.parse(fs.readFileSync(req.body.ConfigJsonPath, 'utf8'))
         }
         catch(err) {
             throw new Error("Config file not found at path " + req.body.ConfigJsonPath)
         }
-        await object.map((value, index) => {
+        
+        await objects.map((object) => {
+            const objectRow = {}
             const imageId = workbook.addImage({
-                filename: `${req.body.ImagePath}${value.FileName}`,
+                filename: `${req.body.ImagePath}${object.FileName}`,
                 extension: 'png',
             })
-            sheet.addRow({
-                id: value.Id,
-                filename: value.FileName,
-                object: value.object,
-                type: value.type,
-                category: value.Category,
+            req.body.ColumnsToConVert.forEach(column => {
+                objectRow[column.toLowerCase()] = object[column]
             })
+            sheet.addRow(objectRow)
             sheet.addImage(imageId, {
                 tl: {col: sheet.getColumn("image").number - 1, row: row},
                 ext: {width: 100, height: 20},
-                editAs: 'undefined'
+                editAs: 'undefined',
+                /*hyperlinks: {
+                    hyperlink: 'https://www.google.com.vn/?hl=vi',
+                }*/
             })
             row++
         })
@@ -65,7 +68,7 @@ app.post("/JsonExportExcel/Convert-All", async (req, res) => {
 
 app.post("/JsonExportExcel/Edit-Exist", async (req, res) => {
     try {
-        let object
+        let objects
         let sheet
         var nextPosDataRow = req.body.StartPosDataRow
         let workbook = new excelJs.Workbook()
@@ -84,39 +87,40 @@ app.post("/JsonExportExcel/Edit-Exist", async (req, res) => {
         }
 
         const rowCount = sheet.rowCount
-        sheet.columns = [
-            {header: "Id", key: "id", width: 5},
-            {header: "FileName", key: "filename", width: 25},
-            {header: "Image", key: 'image', width: 15},
-            {header: "Object", key: "object", width: 25},
-            {header: "Category", key: "category", width: 25},
-            {header: "Type", key: "type", width: 25},
-        ]  
+        let columns = new Array()
+        req.body.ColumnsToConVert.forEach(column => {
+            let width = 25
+            if(column === "Id") width = 5
+            columns.push({header: `${column}`, key: `${column.toLowerCase()}`, width: width})
+        })
+
+        sheet.columns = columns 
         try{
-            object = JSON.parse(fs.readFileSync(req.body.ConfigJsonPath, 'utf8'))
+            objects = JSON.parse(fs.readFileSync(req.body.ConfigJsonPath, 'utf8'))
         }
         catch(err) {
             throw new Error("Config file not found at path " + req.body.ConfigJsonPath)
         }   
-        await object.map((value) => {
+        await objects.map((object) => {
             const imageId = workbook.addImage({
-                filename: `${req.body.ImagePath}${value.FileName}`,
+                filename: `${req.body.ImagePath}${object.FileName}`,
                 extension: 'png',
             })
             for (var i = nextPosDataRow; i <= rowCount; i++) {
                 const row = sheet.getRow(i)
-                if(row.values[1] == value.Id) {
-                    row.values = {
-                        id: value.Id,
-                        filename: value.FileName,
-                        object: value.object,
-                        type: value.type,
-                        category: value.Category,       
-                    }
+                const objectRow = {}
+                if(row.values[1] == object.Id) {
+                    req.body.ColumnsToConVert.forEach(column => {
+                        objectRow[column.toLowerCase()] = object[column]
+                    })
+                    row.values = objectRow
                     sheet.addImage(imageId, {
                         tl: {col: sheet.getColumn("image").number - 1, row: row.number - 1},
                         ext: {width: 100, height: 20},
-                        editAs: 'undefined'
+                        editAs: 'undefined',
+                        /*hyperlinks: {
+                            hyperlink: 'https://www.google.com.vn/?hl=vi',
+                          }*/
                     })
                     nextPosDataRow++
                     break
