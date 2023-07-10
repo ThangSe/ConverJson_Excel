@@ -38,7 +38,7 @@ app.post("/JsonExportExcel/Convert-All", async (req, res) => {
             throw new Error("Config file not found at path " + req.body.ConfigJsonPath)
         }
         
-        await objects.map((object) => {
+        await objects.Textures.map((object) => {
             const objectRow = {}
             const imageId = workbook.addImage({
                 filename: `${req.body.ImagePath}${object.FileName}`,
@@ -101,7 +101,7 @@ app.post("/JsonExportExcel/Edit-Exist", async (req, res) => {
         catch(err) {
             throw new Error("Config file not found at path " + req.body.ConfigJsonPath)
         }   
-        await objects.map((object) => {
+        await objects.Textures.map((object) => {
             const imageId = workbook.addImage({
                 filename: `${req.body.ImagePath}${object.FileName}`,
                 extension: 'png',
